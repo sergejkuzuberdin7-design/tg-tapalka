@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тапалка</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .score {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .tap-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            margin: 20px 0;
+        }
+        
+        .tap-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+        
+        .upgrades {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .upgrade-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .upgrade-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 МЕГА ТАПАЛКА 🔥</h1>
+        
+        <div class="score" id="score">0</div>
+        
+        <button class="tap-button" id="tapBtn">
+            ТАПАЙ!<br>
+            <span id="clickPower">+1</span>
+        </button>
+        
+        <div class="stats">
+            <p>Денег в секунду: <span id="autoIncome">0</span></p>
+        </div>
+        
+        <div class="upgrades">
+            <button class="upgrade-btn" onclick="buyUpgrade('click')">
+                Усилить тап (+1) - 10 очков
+            </button>
+            <button class="upgrade-btn" onclick="buyUpgrade('auto')">
+                Авто-тап (1/сек) - 50 очков
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем на весь экран
+        tg.MainButton.setText("Сохранить прогресс").show();
+        
+        // Игровые переменные
+        let score = 0;
+        let clickPower = 1;
+        let autoClickPower = 0;
+        let upgrades = {
+            click: { cost: 10, level: 1 },
+            auto: { cost: 50, level: 0 }
+        };
+        
+        // Элементы DOM
+        const scoreElement = document.getElementById('score');
+        const clickPowerElement = document.getElementById('clickPower');
+        const autoIncomeElement = document.getElementById('autoIncome');
+        const tapButton = document.getElementById('tapBtn');
+        
+        // Основная функция тапа
+        tapButton.addEventListener('click', function() {
+            score += clickPower;
+            updateDisplay();
+            
+            // Анимация нажатия
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 100);
+        });
+        
+        // Функция покупки улучшений
+        function buyUpgrade(type) {
+            const upgrade = upgrades[type];
+            
+            if (score >= upgrade.cost) {
+                score -= upgrade.cost;
+                upgrade.level++;
+                upgrade.cost = Math.floor(upgrade.cost * 1.5);
+                
+                if (type === 'click') {
+                    clickPower = upgrade.level;
+                } else if (type === 'auto') {
+                    autoClickPower = upgrade.level;
+                }
+                
+                updateDisplay();
+                updateUpgradeButtons();
+            }
+        }
+        
+        // Автоматический доход
+        setInterval(function() {
+            if (autoClickPower > 0) {
+                score += autoClickPower;
+                updateDisplay();
+            }
+        }, 1000);
+        
+        // Обновление отображения
+        function updateDisplay() {
+            scoreElement.textContent = formatNumber(score);
+            clickPowerElement.textContent = `+${clickPower}`;
+            autoIncomeElement.textContent = autoClickPower;
+        }
+        
+        // Обновление кнопок улучшений
+        function updateUpgradeButtons() {
+            const buttons = document.querySelectorAll('.upgrade-btn');
+            buttons[0].textContent = `Усилить тап (+${upgrades.click.level + 1}) - ${upgrades.click.cost} очков`;
+            buttons[1].textContent = `Авто-тап (${upgrades.auto.level + 1}/сек) - ${upgrades.auto.cost} очков`;
+        }
+        
+        // Форматирование чисел
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num;
+        }
+        
+        // Кнопка сохранения в Telegram
+        tg.MainButton.onClick(function() {
+            tg.sendData(JSON.stringify({
+                score: score,
+                clickPower: clickPower,
+                autoClickPower: autoClickPower
+            }));
+            tg.close();
+        });
+        
+        // Инициализация
+        updateDisplay();
+        updateUpgradeButtons();
+    </script>
+</body>
+</html>
